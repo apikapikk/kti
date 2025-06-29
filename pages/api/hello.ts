@@ -1,13 +1,17 @@
-// Next.js API route support: https://nextjs.org/docs/api-routes/introduction
-import type { NextApiRequest, NextApiResponse } from "next";
+// pages/api/test.ts
+import type { NextApiRequest, NextApiResponse } from 'next'
+import { supabase } from '@/lib/supabase'
 
-type Data = {
-  name: string;
-};
+export default async function handler(req: NextApiRequest, res: NextApiResponse) {
+  const { data, error } = await supabase.auth.signUp({
+    email: 'test123@gmail.com',
+    password: 'testpass',
+  })
 
-export default function handler(
-  req: NextApiRequest,
-  res: NextApiResponse<Data>,
-) {
-  res.status(200).json({ name: "John Doe" });
+  if (error) {
+    console.error('[TEST] Signup Error:', error)
+    return res.status(500).json({ message: error.message })
+  }
+
+  return res.status(200).json({ message: 'Signup berhasil', data })
 }
