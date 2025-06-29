@@ -68,6 +68,10 @@ export default function LoginPage() {
         </button>
         {error && <p className={styles.error}>{error}</p>}
       </form>
+      <p className={styles.registerLink}>
+        Belum punya akun?{' '}
+        <span onClick={() => router.push('/register')} className={styles.link}>Daftar di sini</span>
+      </p>
     </div>
   )
 }

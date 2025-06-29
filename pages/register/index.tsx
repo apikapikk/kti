@@ -1,7 +1,9 @@
 import { useState } from 'react'
+import { useRouter } from 'next/router'
 import styles from './register.module.css'
 
 export default function RegisterPage() {
+  const router = useRouter()
   const [form, setForm] = useState({
     email: '',
     password: '',
@@ -40,8 +42,9 @@ const handleSubmit = async (e: React.FormEvent) => {
     const data = contentType?.includes('application/json') ? await res.json() : {}
 
     if (res.ok) {
-      setSuccess('Pendaftaran berhasil! Silakan login.')
+      //setSuccess('Pendaftaran berhasil! Silakan login.')
       setForm({ email: '', password: '', nama: '', nim: '', kelas: '' })
+      router.push('/login')
     } else {
       setError(data.message || 'Terjadi kesalahan saat registrasi.')
     }
@@ -77,6 +80,10 @@ const handleSubmit = async (e: React.FormEvent) => {
         {error && <p className={styles.error}>{error}</p>}
         {success && <p className={styles.success}>{success}</p>}
       </form>
+      <p className={styles.registerLink}>
+        Sudah punya akun?{' '}
+        <span onClick={() => router.push('/login')} className={styles.link}>Login di sini</span>
+      </p>
     </div>
   )
 }

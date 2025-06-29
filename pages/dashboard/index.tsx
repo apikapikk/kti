@@ -27,6 +27,8 @@ export default function Dashboard() {
   const [divisi, setDivisi] = useState<Divisi[]>([])
   const [pilihan, setPilihan] = useState<string | null>(null)
   const [loading, setLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
+
 
   useEffect(() => {
     const fetchData = async () => {
@@ -82,18 +84,25 @@ export default function Dashboard() {
   }
 
   if (res.ok) {
-    alert(data?.message || 'Berhasil memilih divisi')
-    setPilihan(divisi_id)
-    setDivisi(prev =>
-      prev.map(d =>
-        d.id === divisi_id
-          ? { ...d, kuota_terpakai: d.kuota_terpakai + 1 }
-          : d
+  alert(data.message)
+  setPilihan(divisi_id)
+  setError(null)
+  // update kuota lokal
+  setDivisi(prev =>
+    prev.map(d =>
+      d.id === divisi_id
+        ? { ...d, kuota_terpakai: d.kuota_terpakai + 1 }
+        : d
       )
     )
   } else {
-    alert(data?.message || 'Gagal memilih divisi.')
+  setError(data.message || 'Terjadi kesalahan')
   }
+}
+
+const handleLogout = async () => {
+  await supabase.auth.signOut()
+  router.push('/login')
 }
 
 
@@ -102,6 +111,7 @@ export default function Dashboard() {
   return (
     <div className={styles.container}>
       <h1 className={styles.title}>Dashboard Divisi</h1>
+      {error && <p className={styles.error}>{error}</p>}
       <ul className={styles.list}>
         {divisi.map(d => {
           const full = d.kuota_terpakai >= d.kuota_total
@@ -125,6 +135,9 @@ export default function Dashboard() {
           )
         })}
       </ul>
+      <div className={styles.logout}>
+        <button className={styles.logoutButton} onClick={handleLogout}>Logout</button>
+      </div>
     </div>
   )
 }

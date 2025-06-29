@@ -1,13 +1,21 @@
+@import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;700&display=swap');
+
 .container {
+  max-width: 800px;
+  margin: 3rem auto;
   padding: 2rem;
-  max-width: 600px;
-  margin: 0 auto;
+  background-color: #ffffff;
+  border-radius: 16px;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.05);
+  font-family: 'Plus Jakarta Sans', sans-serif;
 }
 
 .title {
-  font-size: 2rem;
-  text-align: center;
+  font-size: 1.8rem;
+  color: #2d6a4f;
   margin-bottom: 2rem;
+  text-align: center;
+  font-weight: 700;
 }
 
 .list {
@@ -21,21 +29,82 @@
   display: flex;
   justify-content: space-between;
   align-items: center;
-  background: #f2f2f2;
-  padding: 1rem;
-  border-radius: 10px;
+  background-color: #f7fcfa;
+  padding: 1rem 1.5rem;
+  border: 1px solid #cce3dc;
+  border-radius: 12px;
+  transition: box-shadow 0.2s ease;
+}
+
+.card:hover {
+  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.05);
 }
 
 .button {
-  background: #0070f3;
+  padding: 0.5rem 1rem;
+  background-color: #2d6a4f;
   color: white;
   border: none;
-  padding: 0.6rem 1rem;
-  border-radius: 5px;
+  border-radius: 8px;
+  font-weight: 600;
   cursor: pointer;
+  transition: background-color 0.2s ease;
 }
 
 .button:disabled {
-  background: #aaa;
+  opacity: 0.6;
   cursor: not-allowed;
+}
+
+.button:hover:not(:disabled) {
+  background-color: #1b4332;
+}
+
+.logout {
+  display: block;
+  text-align: right;
+  margin-top: 2rem;
+}
+
+.logoutButton {
+  background: transparent;
+  color: #d00000;
+  font-weight: 600;
+  border: none;
+  cursor: pointer;
+  font-size: 0.9rem;
+  padding: 0.5rem;
+}
+
+.logoutButton:hover {
+  text-decoration: underline;
+}
+
+.error {
+  background-color: #ffe0e0;
+  color: #d00000;
+  border: 1px solid #ffcccc;
+  padding: 0.75rem 1rem;
+  border-radius: 8px;
+  margin-bottom: 1rem;
+  text-align: center;
+  font-size: 0.95rem;
+  font-weight: 500;
+}
+
+
+@media (max-width: 600px) {
+  .card {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0.5rem;
+  }
+
+  .button {
+    width: 100%;
+  }
+
+  .logout {
+    text-align: center;
+  }
 }

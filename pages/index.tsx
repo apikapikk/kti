@@ -1,9 +1,9 @@
-import RegisterPage from "./register/register";
+import LoginPage from "./login";
 
 export default function Home() {
   return (
     <div>
-      <RegisterPage />
+      <LoginPage />
     </div>    
   );
 }
