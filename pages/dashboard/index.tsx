@@ -20,7 +20,6 @@ type Divisi = {
   kuota_terpakai: number
 }
 
-
 export default function Dashboard() {
   const router = useRouter()
   const [user, setUser] = useState<SupabaseUser | null>(null)
@@ -29,7 +28,6 @@ export default function Dashboard() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
 
-
   useEffect(() => {
     const fetchData = async () => {
       const { data: userData } = await supabase.auth.getUser()
@@ -37,10 +35,12 @@ export default function Dashboard() {
         router.push('/login')
         return
       }
+
       setUser({
         id: userData.user.id,
         email: userData.user.email ?? 'tanpa email'
       })
+
       const { data: divisiList } = await supabase
         .from('divisi')
         .select('*')
@@ -61,50 +61,47 @@ export default function Dashboard() {
   }, [router])
 
   const handlePilih = async (divisi_id: string) => {
-  if (!user) return
+    if (!user) return
 
-  const res = await fetch('/api/divition/choose', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({
-      user_id: user.id,
-      divisi_id
+    const res = await fetch('/api/divition/choose', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        user_id: user.id,
+        divisi_id
+      })
     })
-  })
 
-  // Coba baca hanya sekali (jika JSON)
-  let data: any = null
-  const isJson = res.headers.get('content-type')?.includes('application/json')
+    let data: { message?: string } | null = null
+    const isJson = res.headers.get('content-type')?.includes('application/json')
 
-  if (isJson) {
-    data = await res.json()
-  } else {
-    const text = await res.text()
-    console.error('Response bukan JSON:', text)
-  }
+    if (isJson) {
+      data = await res.json()
+    } else {
+      const text = await res.text()
+      console.error('Response bukan JSON:', text)
+    }
 
-  if (res.ok) {
-  alert(data.message)
-  setPilihan(divisi_id)
-  setError(null)
-  // update kuota lokal
-  setDivisi(prev =>
-    prev.map(d =>
-      d.id === divisi_id
-        ? { ...d, kuota_terpakai: d.kuota_terpakai + 1 }
-        : d
+    if (res.ok) {
+      alert(data?.message || 'Berhasil memilih divisi.')
+      setPilihan(divisi_id)
+      setError(null)
+      setDivisi(prev =>
+        prev.map(d =>
+          d.id === divisi_id
+            ? { ...d, kuota_terpakai: d.kuota_terpakai + 1 }
+            : d
+        )
       )
-    )
-  } else {
-  setError(data.message || 'Terjadi kesalahan')
+    } else {
+      setError(data?.message || 'Terjadi kesalahan')
+    }
   }
-}
 
-const handleLogout = async () => {
-  await supabase.auth.signOut()
-  router.push('/login')
-}
-
+  const handleLogout = async () => {
+    await supabase.auth.signOut()
+    router.push('/login')
+  }
 
   if (loading) return <p>Loading...</p>
 
@@ -112,6 +109,7 @@ const handleLogout = async () => {
     <div className={styles.container}>
       <h1 className={styles.title}>Dashboard Divisi</h1>
       {error && <p className={styles.error}>{error}</p>}
+
       <ul className={styles.list}>
         {divisi.map(d => {
           const full = d.kuota_terpakai >= d.kuota_total
@@ -135,8 +133,11 @@ const handleLogout = async () => {
           )
         })}
       </ul>
+
       <div className={styles.logout}>
-        <button className={styles.logoutButton} onClick={handleLogout}>Logout</button>
+        <button className={styles.logoutButton} onClick={handleLogout}>
+          Logout
+        </button>
       </div>
     </div>
   )
