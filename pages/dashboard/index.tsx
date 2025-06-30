@@ -17,16 +17,21 @@ type Divisi = {
   id: string
   nama: string
   kuota_total: number
-  kuota_terpakai: number
+  kuota_terpakai_2a: number
+  kuota_terpakai_2b: number
 }
 
 export default function Dashboard() {
   const router = useRouter()
   const [user, setUser] = useState<SupabaseUser | null>(null)
+  const [kelas, setKelas] = useState<string | null>(null)
   const [divisi, setDivisi] = useState<Divisi[]>([])
   const [pilihan, setPilihan] = useState<string | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
+  const [isLocked, setIsLocked] = useState(false)
+  const [success, setSuccess] = useState<string | null>(null)
+
 
   useEffect(() => {
     const fetchData = async () => {
@@ -41,25 +46,56 @@ export default function Dashboard() {
         email: userData.user.email ?? 'tanpa email'
       })
 
-      const { data: divisiList } = await supabase
+      // Ambil kelas user dari tabel profiles
+      const { data: profile } = await supabase
+        .from('profiles')
+        .select('kelas')
+        .eq('id', userData.user.id)
+        .single()
+
+      if (!profile) {
+        setError('Gagal mengambil data profil')
+        return
+      }
+
+      setKelas(profile.kelas)
+
+      // Ambil semua divisi
+      const { data: divisiList, error: divisiError } = await supabase
         .from('divisi')
         .select('*')
         .order('nama', { ascending: true })
 
+        if (divisiError) {
+          console.error('Gagal ambil data divisi:', divisiError)
+        } else {
+          setDivisi(divisiList || []) // ⬅️ gunakan nilainya di sini
+        }
+
+      // Ambil pilihan divisi user (jika ada)
       const { data: pilihanData } = await supabase
         .from('divisi_pilihan')
-        .select('divisi_id')
+        .select('divisi_id, is_locked')
         .eq('user_id', userData.user.id)
         .maybeSingle()
 
-      setDivisi(divisiList || [])
-      setPilihan(pilihanData?.divisi_id || null)
-      setLoading(false)
-    }
-
+        setPilihan(pilihanData?.divisi_id || null)
+        setIsLocked(pilihanData?.is_locked || false)
+        setLoading(false)
+      }
     fetchData()
   }, [router])
 
+  useEffect(() => {
+    if (success || error) {
+      const timer = setTimeout(() => {
+        setSuccess(null)
+        setError(null)
+      }, 3000)
+      return () => clearTimeout(timer)
+    }
+  }, [success, error])
+  
   const handlePilih = async (divisi_id: string) => {
     if (!user) return
 
@@ -89,7 +125,11 @@ export default function Dashboard() {
       setDivisi(prev =>
         prev.map(d =>
           d.id === divisi_id
-            ? { ...d, kuota_terpakai: d.kuota_terpakai + 1 }
+            ? {
+                ...d,
+                kuota_terpakai_2a: kelas === '2A' ? d.kuota_terpakai_2a + 1 : d.kuota_terpakai_2a,
+                kuota_terpakai_2b: kelas === '2B' ? d.kuota_terpakai_2b + 1 : d.kuota_terpakai_2b
+              }
             : d
         )
       )
@@ -103,37 +143,115 @@ export default function Dashboard() {
     router.push('/login')
   }
 
+  const handleLock = async () => {
+  if (!user) return
+
+  const res = await fetch('/api/divition/lock', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ user_id: user.id }),
+  })
+
+  const data = await res.json()
+  if (res.ok) {
+    setIsLocked(true)
+    setSuccess(data.message)
+  } else {
+    setError(data.message || 'Gagal mengunci pilihan')
+  }
+}
+
+  const handleBatal = async (divisi_id: string) => {
+  if (!user) return
+
+  const res = await fetch('/api/divition/cancel', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ user_id: user.id, divisi_id })
+  })
+
+  const data = await res.json()
+
+  if (res.ok) {
+    alert('Berhasil membatalkan pilihan.')
+    setPilihan(null)
+    setIsLocked(false)
+    setDivisi(prev =>
+      prev.map(d =>
+        d.id === divisi_id
+          ? {
+              ...d,
+              kuota_terpakai_2a: kelas === '2A' ? d.kuota_terpakai_2a - 1 : d.kuota_terpakai_2a,
+              kuota_terpakai_2b: kelas === '2B' ? d.kuota_terpakai_2b - 1 : d.kuota_terpakai_2b
+            }
+          : d
+      )
+    )
+  } else {
+    alert(data.message || 'Gagal membatalkan pilihan.')
+  }
+}
+
+
   if (loading) return <p>Loading...</p>
 
   return (
     <div className={styles.container}>
       <h1 className={styles.title}>Dashboard Divisi</h1>
       {error && <p className={styles.error}>{error}</p>}
-
+      {success && <p className={styles.success}>{success}</p>}
       <ul className={styles.list}>
         {divisi.map(d => {
-          const full = d.kuota_terpakai >= d.kuota_total
-          const sudahPilih = pilihan === d.id
-          const disable = full || (!!pilihan && !sudahPilih)
+  const totalKelas = kelas === '2A'
+    ? Math.ceil(d.kuota_total / 2)
+    : Math.floor(d.kuota_total / 2)
 
-          return (
-            <li key={d.id} className={styles.card}>
-              <div>
-                <strong>{d.nama}</strong>
-                <p>Kuota: {d.kuota_terpakai}/{d.kuota_total}</p>
-              </div>
-              <button
-                className={styles.button}
-                disabled={disable}
-                onClick={() => handlePilih(d.id)}
-              >
-                {sudahPilih ? 'Dipilih' : full ? 'Penuh' : 'Pilih'}
-              </button>
-            </li>
-          )
+  const terpakaiKelas = kelas === '2A'
+    ? d.kuota_terpakai_2a
+    : d.kuota_terpakai_2b
+
+  const full = terpakaiKelas >= totalKelas
+  const sudahPilih = pilihan === d.id
+
+  return (
+    <li key={d.id} className={styles.card}>
+      <div>
+        <strong>{d.nama}</strong>
+        <p>Kuota ({kelas}): {terpakaiKelas}/{totalKelas}</p>
+      </div>
+
+      {/* Tombol aksi */}
+      {sudahPilih ? (
+        isLocked ? (
+          <button className={styles.button} disabled>Dipilih (Terkunci)</button>
+        ) : (
+          <button
+            className={styles.button}
+            onClick={() => handleBatal(d.id)}
+          >
+            Batalkan
+          </button>
+        )
+      ) : (
+        <button
+          className={styles.button}
+          disabled={!!pilihan || full || isLocked}
+          onClick={() => handlePilih(d.id)}
+        >
+          {full ? 'Penuh' : 'Pilih'}
+        </button>
+      )}
+    </li>
+  )
         })}
       </ul>
-
+      {pilihan && !isLocked && (
+        <div className={styles.lockContainer}>
+          <button className={styles.lockButton} onClick={handleLock}>
+            Kunci Pilihan
+          </button>
+        </div>
+      )}
       <div className={styles.logout}>
         <button className={styles.logoutButton} onClick={handleLogout}>
           Logout

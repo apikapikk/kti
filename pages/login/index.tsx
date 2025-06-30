@@ -31,9 +31,10 @@ export default function LoginPage() {
 
     if (res.ok) {
       // ✅ Set session dari server response ke Supabase client
-      const { session } = data
+      const { session, profile } = data
       if (session) {
         await supabase.auth.setSession(session)
+        localStorage.setItem('kelas', profile.kelas)
       }
       router.push('/dashboard') // Redirect ke dashboard
     } else {
