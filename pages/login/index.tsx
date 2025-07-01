@@ -36,7 +36,11 @@ export default function LoginPage() {
         await supabase.auth.setSession(session)
         localStorage.setItem('kelas', profile.kelas)
       }
-      router.push('/dashboard') // Redirect ke dashboard
+       if (profile.kelas === 'admin') {
+          router.push('/admin')
+        } else {
+          router.push('/dashboard')
+        }
     } else {
       setError(data.message || 'Gagal login')
     }

@@ -2,34 +2,46 @@
 
 .wrapper {
   font-family: 'Plus Jakarta Sans', sans-serif;
-  padding: 2rem;
   background-color: #f0fdf4;
   min-height: 100vh;
+  padding: 2rem;
 }
 
-.card {
-  background-color: #ffffff;
-  padding: 2rem;
-  border-radius: 16px;
-  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.05);
-  border: 1px solid #e0f2f1;
-  max-width: 1200px;
-  margin: 0 auto;
+.navbar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1rem;
 }
 
 .heading {
   font-size: 1.8rem;
   font-weight: 700;
-  text-align: center;
-  margin-bottom: 1.5rem;
   color: #2d6a4f;
+}
+
+.logout {
+  background: #d00000;
+  color: white;
+  border: none;
+  padding: 0.5rem 1rem;
+  border-radius: 8px;
+  cursor: pointer;
+}
+
+.card {
+  background: #ffffff;
+  padding: 2rem;
+  border-radius: 16px;
+  border: 1px solid #e0f2f1;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.05);
 }
 
 .table {
   width: 100%;
   border-collapse: collapse;
+  margin-top: 1rem;
   font-size: 0.95rem;
-  color: #333;
 }
 
 .table th,
@@ -45,10 +57,6 @@
   font-weight: 600;
 }
 
-.table tr:hover {
-  background-color: #f7fcfa;
-}
-
 .statusTrue {
   color: #2d6a4f;
   font-weight: 600;
@@ -57,4 +65,67 @@
 .statusFalse {
   color: #aaa;
   font-style: italic;
+}
+
+.tabButtons {
+  display: flex;
+  gap: 1rem;
+  margin-bottom: 1.5rem;
+}
+
+.tabButtons button {
+  padding: 0.5rem 1rem;
+  background: #f7fcfa;
+  border: 1px solid #cce3dc;
+  border-radius: 8px;
+  cursor: pointer;
+  font-weight: 600;
+}
+
+.tabButtons .active {
+  background: #2d6a4f;
+  color: white;
+  border-color: #2d6a4f;
+}
+
+.subTabButtons {
+  display: flex;
+  gap: 0.5rem;
+  margin-bottom: 1rem;
+}
+.subTabButtons button {
+  padding: 0.4rem 0.8rem;
+  background: #f7fcfa;
+  border: 1px solid #cce3dc;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 0.9rem;
+  font-weight: 600;
+}
+.subTabButtons .active {
+  background: #2d6a4f;
+  color: white;
+  border-color: #2d6a4f;
+}
+
+.divisiSection {
+  margin-bottom: 2rem;
+  padding: 1rem;
+  border: 1px solid #e0f2f1;
+  border-radius: 12px;
+  background-color: #ffffff;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.03);
+}
+
+.divisiTitle {
+  font-size: 1.2rem;
+  font-weight: 700;
+  color: #1b4332;
+  margin-bottom: 0.75rem;
+}
+
+.noPeserta {
+  font-style: italic;
+  color: #888;
+  font-size: 0.95rem;
 }

@@ -2,6 +2,7 @@ import type { NextApiRequest, NextApiResponse } from 'next'
 import { createClient } from '@supabase/supabase-js'
 import supabaseAdmin from '@/lib/supabaseAdmin'
 
+// Client hanya untuk validasi token user (dengan anon key)
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
   process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
@@ -20,7 +21,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
   if (authError || !user) return res.status(401).json({ error: 'Unauthorized' })
 
-  // Validasi admin
+  // ✅ Validasi kelas = admin via service role
   const { data: profile, error } = await supabaseAdmin
     .from('profiles')
     .select('kelas')
@@ -31,30 +32,13 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     return res.status(403).json({ error: 'Forbidden: Admin only' })
   }
 
-  // Ambil data divisi
-  const { data, error: dataError } = await supabaseAdmin
-    .from('divisi_pilihan')
-    .select(`
-      id,
-      user_id,
-      divisi_id,
-      created_at,
-      is_locked,
-      profile:profiles!divisi_pilihan_profiles_fkey (
-        id, nama, nim, kelas
-      ),
-      divisi (
-        id, nama, kuota_total, kuota_terpakai
-      )
-    `)
+  // ✅ Ambil semua data profil
+  const { data: profiles, error: fetchError } = await supabaseAdmin
+    .from('profiles')
+    .select('*')
+    .order('created_at', { ascending: false })
 
-  if (dataError) return res.status(500).json({ error: dataError.message })
+  if (fetchError) return res.status(500).json({ error: fetchError.message })
 
-  const formatted = (data ?? []).map((item) => ({
-    ...item,
-    profile: Array.isArray(item.profile) ? item.profile[0] : item.profile,
-    divisi: Array.isArray(item.divisi) ? item.divisi[0] : item.divisi,
-  }))
-
-  return res.status(200).json(formatted)
+  return res.status(200).json(profiles)
 }

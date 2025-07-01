@@ -1,3 +1,4 @@
+// File: /api/auth/login.ts
 import type { NextApiRequest, NextApiResponse } from 'next'
 import { createClient } from '@supabase/supabase-js'
 
@@ -17,14 +18,14 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     return res.status(401).json({ message: error?.message || 'Login gagal' })
   }
 
-  // 🔽 Ambil profile berdasarkan ID user
+  // 🔽 Ambil profil berdasarkan ID user (hanya 1 baris, sesuai RLS)
   const { data: profile, error: profileError } = await supabase
     .from('profiles')
     .select('nama, nim, kelas')
     .eq('id', data.user.id)
     .single()
 
-  if (profileError) {
+  if (profileError || !profile) {
     return res.status(500).json({ message: 'Gagal mengambil data profil' })
   }
 
@@ -32,6 +33,6 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     message: 'Login berhasil',
     user: data.user,
     session: data.session,
-    profile, // kirim juga profil ke frontend
+    profile,
   })
 }
