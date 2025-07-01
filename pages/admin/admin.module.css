@@ -129,3 +129,44 @@
   color: #888;
   font-size: 0.95rem;
 }
+
+/* admin.module.css */
+
+.downloadButton {
+  background-color: #2d6a4f;
+  color: white;
+  padding: 0.5rem 1rem;
+  border-radius: 0.5rem;
+  margin-right: 1rem;
+  cursor: pointer;
+  border: none;
+}
+
+.resetButton {
+  background-color: #d62828;
+  color: white;
+  padding: 0.5rem 1rem;
+  border-radius: 0.5rem;
+  cursor: pointer;
+  border: none;
+}
+
+.hapusButton {
+  background-color: #dc3545;
+  color: white;
+  padding: 4px 8px;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 0.9rem;
+}
+
+.hapusButton:hover {
+  background-color: #c82333;
+}
+
+.adminBadge {
+  color: #2d6a4f;
+  font-weight: bold;
+}
+

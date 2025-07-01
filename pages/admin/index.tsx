@@ -37,14 +37,16 @@ interface DivisiPilihan {
   divisi: Divisi | null
 }
 
-type Tab = 'semua' | 'organisasi' | 'profil'
+type Tab = 'semua' | 'organisasi' | 'profil' | 'kelola'
 type SubTab = 'semua' | '2A' | '2B'
+
 
 export default function AdminPage() {
   const [data, setData] = useState<DivisiPilihan[]>([])
   const [profiles, setProfiles] = useState<Profile[]>([])
   const [tab, setTab] = useState<Tab>('semua')
   const [subTab, setSubTab] = useState<SubTab>('semua')
+  const [semuaDivisi, setSemuaDivisi] = useState<Divisi[]>([])
   const router = useRouter()
 
   useEffect(() => {
@@ -56,9 +58,7 @@ export default function AdminPage() {
       if (!token) return
 
       fetch('/api/admin/divisi', {
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
+        headers: { Authorization: `Bearer ${token}` },
       })
         .then((res) => res.json())
         .then((d: unknown) => {
@@ -78,9 +78,7 @@ export default function AdminPage() {
       if (!token) return
 
       fetch('/api/admin/profiles', {
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
+        headers: { Authorization: `Bearer ${token}` },
       })
         .then((res) => res.json())
         .then((d: unknown) => {
@@ -94,18 +92,16 @@ export default function AdminPage() {
     })
   }, [])
 
+  useEffect(() => {
+    fetch('/api/admin/semua-divisi')
+      .then((res) => res.json())
+      .then((d: Divisi[]) => setSemuaDivisi(d))
+  }, [])
+
   const handleLogout = () => {
     localStorage.clear()
     router.push('/login')
   }
-
-  const semuaDivisi: Divisi[] = Array.from(
-    new Map(
-      data
-        .filter((d) => d.divisi !== null)
-        .map((d) => [d.divisi!.id, d.divisi!])
-    ).values()
-  )
 
   const semuaKelas = ['2A', '2B']
 
@@ -116,41 +112,83 @@ export default function AdminPage() {
         return item.divisi?.id === div.id && cocokKelas
       })
 
-      return {
-        divisi: div.nama,
-        peserta,
-      }
+      return { divisi: div.nama, peserta }
     })
 
     acc[kelas as SubTab] = perDivisi
     return acc
   }, {} as Record<SubTab, { divisi: string; peserta: DivisiPilihan[] }[]>)
 
+      function handleDownloadCSV(data: DivisiPilihan[]) {
+        const header = ['Nama', 'NIM', 'Kelas', 'Divisi', 'Status', 'Dibuat']
+        const rows = data.map((item) => [
+          item.profile?.nama ?? '-',
+          item.profile?.nim ?? '-',
+          item.profile?.kelas ?? '-',
+          item.divisi?.nama ?? '-',
+          item.is_locked ? 'Terkunci' : 'Terbuka',
+          new Date(item.created_at).toLocaleString(),
+        ])
+
+        const csvContent =
+          'data:text/csv;charset=utf-8,' +
+          [header, ...rows]
+            .map((e) => e.map((cell) => `"${cell}"`).join(','))
+            .join('\n')
+
+        const encodedUri = encodeURI(csvContent)
+        const link = document.createElement('a')
+        link.setAttribute('href', encodedUri)
+        link.setAttribute('download', 'data_divisi.csv')
+        document.body.appendChild(link)
+        link.click()
+        document.body.removeChild(link)
+      }
+
+  function handleDeleteUser(userId: string) {
+  const yakin = confirm('Yakin ingin menghapus user ini? Semua data akan dihapus permanen.')
+  if (!yakin) return
+
+  supabase.auth.getSession().then((session) => {
+    const token = session.data.session?.access_token
+    if (!token) return
+
+    fetch('/api/admin/delete-user', {
+      method: 'DELETE',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${token}`,
+      },
+      body: JSON.stringify({ userId }),
+    })
+      .then((res) => res.json())
+      .then((res) => {
+        alert(res.message || 'User berhasil dihapus')
+        setProfiles((prev) => prev.filter((p) => p.id !== userId)) // update UI
+      })
+      .catch(() => alert('Gagal menghapus user'))
+  })
+}
+
+
   return (
     <div className={styles.wrapper}>
       <div className={styles.navbar}>
         <h1 className={styles.heading}>Admin Panel</h1>
-        <button onClick={handleLogout} className={styles.logout}>
-          Logout
+        <button onClick={handleLogout} className={styles.logout}>Logout</button>
+        <button
+          onClick={() => handleDownloadCSV(data)}
+          className={styles.downloadButton}
+        >
+          Download Semua Data
         </button>
       </div>
 
       <div className={styles.tabButtons}>
-        <button onClick={() => setTab('semua')} className={tab === 'semua' ? styles.active : ''}>
-          Semua Data
-        </button>
-        <button
-          onClick={() => setTab('organisasi')}
-          className={tab === 'organisasi' ? styles.active : ''}
-        >
-          Data Terorganisasi
-        </button>
-        <button
-          onClick={() => setTab('profil')}
-          className={tab === 'profil' ? styles.active : ''}
-        >
-          Profil Terdaftar
-        </button>
+        <button onClick={() => setTab('semua')} className={tab === 'semua' ? styles.active : ''}>Semua Data</button>
+        <button onClick={() => setTab('organisasi')} className={tab === 'organisasi' ? styles.active : ''}>Data Terorganisasi</button>
+        <button onClick={() => setTab('profil')} className={tab === 'profil' ? styles.active : ''}>Profil Terdaftar</button>
+        <button onClick={() => setTab('kelola')} className={tab === 'kelola' ? styles.active : ''}>Kelola Akun</button>
       </div>
 
       {tab === 'semua' && (
@@ -159,14 +197,7 @@ export default function AdminPage() {
           <table className={styles.table}>
             <thead>
               <tr>
-                <th>Nama</th>
-                <th>NIM</th>
-                <th>Kelas</th>
-                <th>Divisi</th>
-                <th>Kuota</th>
-                <th>Terpakai</th>
-                <th>Status</th>
-                <th>Dibuat</th>
+                <th>Nama</th><th>NIM</th><th>Kelas</th><th>Divisi</th><th>Kuota</th><th>Terpakai</th><th>Status</th><th>Dibuat</th>
               </tr>
             </thead>
             <tbody>
@@ -211,11 +242,7 @@ export default function AdminPage() {
               {peserta.length > 0 ? (
                 <table className={styles.table}>
                   <thead>
-                    <tr>
-                      <th>Nama</th>
-                      <th>NIM</th>
-                      <th>Kelas</th>
-                    </tr>
+                    <tr><th>Nama</th><th>NIM</th><th>Kelas</th></tr>
                   </thead>
                   <tbody>
                     {peserta.map((i) => (
@@ -243,11 +270,37 @@ export default function AdminPage() {
           ) : (
             <table className={styles.table}>
               <thead>
+                <tr><th>Nama</th><th>NIM</th><th>Kelas</th><th>Terdaftar</th></tr>
+              </thead>
+              <tbody>
+                {profiles.map((p) => (
+                  <tr key={p.id}>
+                    <td>{p.nama}</td>
+                    <td>{p.nim}</td>
+                    <td>{p.kelas}</td>
+                    <td>{new Date(p.created_at).toLocaleString()}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          )}
+        </div>
+      )}
+      
+      {tab === 'kelola' && (
+        <div className={styles.card}>
+          <h2 className={styles.heading}>Kelola Akun Pengguna</h2>
+          {profiles.length === 0 ? (
+            <p>Belum ada akun pengguna terdaftar.</p>
+          ) : (
+            <table className={styles.table}>
+              <thead>
                 <tr>
                   <th>Nama</th>
                   <th>NIM</th>
                   <th>Kelas</th>
                   <th>Terdaftar</th>
+                  <th>Aksi</th>
                 </tr>
               </thead>
               <tbody>
@@ -257,6 +310,18 @@ export default function AdminPage() {
                     <td>{p.nim}</td>
                     <td>{p.kelas}</td>
                     <td>{new Date(p.created_at).toLocaleString()}</td>
+                    <td>
+                      {p.kelas !== 'admin' ? (
+                        <button
+                          onClick={() => handleDeleteUser(p.id)}
+                          className={styles.hapusButton}
+                        >
+                          Hapus
+                        </button>
+                      ) : (
+                        <span className={styles.adminBadge}>Admin</span>
+                      )}
+                    </td>
                   </tr>
                 ))}
               </tbody>
