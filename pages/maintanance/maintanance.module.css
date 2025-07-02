@@ -1,0 +1,31 @@
+.container {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  text-align: center;
+  background-color: #f9fafb;
+  color: #333;
+  padding: 2rem;
+  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+}
+
+.code {
+  font-size: 6rem;
+  font-weight: bold;
+  color: #dc2626; /* merah error */
+  margin: 0;
+}
+
+.title {
+  font-size: 2rem;
+  margin: 1rem 0;
+  color: #1e293b;
+}
+
+.message {
+  font-size: 1.1rem;
+  max-width: 600px;
+  color: #475569;
+}
