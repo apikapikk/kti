@@ -31,6 +31,7 @@ export default function Dashboard() {
   const [error, setError] = useState<string | null>(null)
   const [isLocked, setIsLocked] = useState(false)
   const [success, setSuccess] = useState<string | null>(null)
+  const [isSubmitting, setIsSubmitting] = useState(false)
 
 
   useEffect(() => {
@@ -97,46 +98,63 @@ export default function Dashboard() {
   }, [success, error])
   
   const handlePilih = async (divisi_id: string) => {
-    if (!user) return
+  if (!user || isSubmitting) return
+  setIsSubmitting(true)
 
-    const res = await fetch('/api/divition/choose', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        user_id: user.id,
-        divisi_id
-      })
-    })
+  const session = await supabase.auth.getSession()
+const token = session.data.session?.access_token
 
-    let data: { message?: string } | null = null
-    const isJson = res.headers.get('content-type')?.includes('application/json')
+if (!token) {
+  setError('Sesi login tidak ditemukan')
+  return
+}
+try {
+  const res = await fetch('/api/divition/choose', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'Authorization': `Bearer ${token}`
+    },
+    body: JSON.stringify({ user_id: user.id, divisi_id })
+  })
 
-    if (isJson) {
-      data = await res.json()
-    } else {
-      const text = await res.text()
-      console.error('Response bukan JSON:', text)
-    }
+  let data: { message?: string } | null = null
+  const isJson = res.headers.get('content-type')?.includes('application/json')
 
-    if (res.ok) {
-      alert(data?.message || 'Berhasil memilih divisi.')
-      setPilihan(divisi_id)
-      setError(null)
-      setDivisi(prev =>
-        prev.map(d =>
-          d.id === divisi_id
-            ? {
-                ...d,
-                kuota_terpakai_2a: kelas === '2A' ? d.kuota_terpakai_2a + 1 : d.kuota_terpakai_2a,
-                kuota_terpakai_2b: kelas === '2B' ? d.kuota_terpakai_2b + 1 : d.kuota_terpakai_2b
-              }
-            : d
-        )
-      )
-    } else {
-      setError(data?.message || 'Terjadi kesalahan')
-    }
+  if (isJson) {
+    data = await res.json()
+  } else {
+    const text = await res.text()
+    console.error('Response bukan JSON:', text)
   }
+
+  if (res.ok) {
+    alert(data?.message || 'Berhasil memilih divisi.')
+    setPilihan(divisi_id)
+    setError(null)
+    setDivisi(prev =>
+      prev.map(d =>
+        d.id === divisi_id
+          ? {
+              ...d,
+              kuota_terpakai_2a: kelas === '2A' ? d.kuota_terpakai_2a + 1 : d.kuota_terpakai_2a,
+              kuota_terpakai_2b: kelas === '2B' ? d.kuota_terpakai_2b + 1 : d.kuota_terpakai_2b
+            }
+          : d
+      )
+    )
+  } else {
+    setError(data?.message || 'Terjadi kesalahan')
+  }
+} catch (e) {
+  console.error('Terjadi error saat memilih:', e)
+  setError('Gagal memilih divisi.')
+} finally {
+  setIsSubmitting(false)
+}
+
+}
+
 
   const handleLogout = async () => {
     await supabase.auth.signOut()
@@ -161,34 +179,53 @@ export default function Dashboard() {
   }
 }
 
-  const handleBatal = async (divisi_id: string) => {
-  if (!user) return
+const handleBatal = async (divisi_id: string) => {
+  if (!user || isSubmitting) return
+  setIsSubmitting(true)
 
-  const res = await fetch('/api/divition/cancel', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ user_id: user.id, divisi_id })
-  })
+  try {
+    const session = await supabase.auth.getSession()
+    const token = session.data.session?.access_token
 
-  const data = await res.json()
+    if (!token) {
+      setError('Sesi login tidak ditemukan')
+      return
+    }
 
-  if (res.ok) {
-    alert('Berhasil membatalkan pilihan.')
-    setPilihan(null)
-    setIsLocked(false)
-    setDivisi(prev =>
-      prev.map(d =>
-        d.id === divisi_id
-          ? {
-              ...d,
-              kuota_terpakai_2a: kelas === '2A' ? d.kuota_terpakai_2a - 1 : d.kuota_terpakai_2a,
-              kuota_terpakai_2b: kelas === '2B' ? d.kuota_terpakai_2b - 1 : d.kuota_terpakai_2b
-            }
-          : d
+    const res = await fetch('/api/divition/cancel', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${token}`,
+      },
+      body: JSON.stringify({ user_id: user.id, divisi_id }),
+    })
+
+    const data = await res.json()
+
+    if (res.ok) {
+      alert('Berhasil membatalkan pilihan.')
+      setPilihan(null)
+      setIsLocked(false)
+      setDivisi((prev) =>
+        prev.map((d) =>
+          d.id === divisi_id
+            ? {
+                ...d,
+                kuota_terpakai_2a: kelas === '2A' ? d.kuota_terpakai_2a - 1 : d.kuota_terpakai_2a,
+                kuota_terpakai_2b: kelas === '2B' ? d.kuota_terpakai_2b - 1 : d.kuota_terpakai_2b,
+              }
+            : d
+        )
       )
-    )
-  } else {
-    alert(data.message || 'Gagal membatalkan pilihan.')
+    } else {
+      alert(data.message || 'Gagal membatalkan pilihan.')
+    }
+  } catch (e) {
+    console.error('Gagal saat membatalkan:', e)
+    setError('Terjadi kesalahan saat membatalkan.')
+  } finally {
+    setIsSubmitting(false)
   }
 }
 
@@ -219,8 +256,7 @@ export default function Dashboard() {
         <strong>{d.nama}</strong>
         <p>Kuota ({kelas}): {terpakaiKelas}/{totalKelas}</p>
       </div>
-
-      {/* Tombol aksi */}
+      {isSubmitting && <p className={styles.loading}>Menyimpan...</p>}
       {sudahPilih ? (
         isLocked ? (
           <button className={styles.button} disabled>Dipilih (Terkunci)</button>
@@ -234,12 +270,12 @@ export default function Dashboard() {
         )
       ) : (
         <button
-          className={styles.button}
-          disabled={!!pilihan || full || isLocked}
-          onClick={() => handlePilih(d.id)}
-        >
-          {full ? 'Penuh' : 'Pilih'}
-        </button>
+        className={styles.button}
+        disabled={!!pilihan || full || isLocked || isSubmitting}
+        onClick={() => handlePilih(d.id)}
+      >
+        {full ? 'Penuh' : 'Pilih'}
+      </button>
       )}
     </li>
   )

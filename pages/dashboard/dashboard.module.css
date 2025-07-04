@@ -121,6 +121,13 @@
   background-color: #003d80;
 }
 
+.loading {
+  font-size: 1rem;
+  justify-content: center;
+  display: flex;
+  color: #555;
+}
+
 
 @media (max-width: 600px) {
   .card {

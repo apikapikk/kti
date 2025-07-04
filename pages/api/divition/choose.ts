@@ -29,6 +29,18 @@ export default async function handler(
     return res.status(400).json({ message: 'user_id dan divisi_id wajib diisi' })
   }
 
+  // ✅ 1. Cek apakah user sudah memilih
+  const { data: existing } = await supabaseAdmin
+    .from('divisi_pilihan')
+    .select('id')
+    .eq('user_id', user_id)
+    .maybeSingle()
+
+  if (existing) {
+    return res.status(400).json({ message: 'Kamu sudah memilih divisi.' })
+  }
+
+  // ✅ 2. Ambil profil user
   const { data: profile, error: profileError } = await supabaseAdmin
     .from('profiles')
     .select('kelas')
@@ -41,16 +53,7 @@ export default async function handler(
 
   const kelas = profile.kelas
 
-  const { data: existing } = await supabaseAdmin
-    .from('divisi_pilihan')
-    .select('*')
-    .eq('user_id', user_id)
-    .maybeSingle()
-
-  if (existing) {
-    return res.status(400).json({ message: 'Kamu sudah memilih divisi.' })
-  }
-
+  // ✅ 3. Ambil divisi
   const { data: divisi } = await supabaseAdmin
     .from('divisi')
     .select('*')
@@ -70,13 +73,26 @@ export default async function handler(
     return res.status(400).json({ message: `Kuota divisi ${divisi.nama} untuk kelas ${kelas} sudah penuh.` })
   }
 
-  await supabaseAdmin.from('divisi_pilihan').insert({
-    user_id,
-    divisi_id,
-    is_locked: false
-  })
+  // ✅ 4. Masukkan data baru, dan update kuota
+  const insertRes = await supabaseAdmin
+    .from('divisi_pilihan')
+    .insert({
+      user_id,
+      divisi_id,
+      is_locked: false
+    })
+    .select()
+
+  if (insertRes.error) {
+    if (insertRes.error.code === '23505') { // kode unique_violation Postgres
+      return res.status(400).json({ message: 'Kamu sudah memilih sebelumnya (cepat banget kliknya 😅).' })
+    }
+
+    return res.status(500).json({ message: 'Gagal menyimpan pilihan' })
+  }
 
   const kolomUpdate = kelas === '2A' ? 'kuota_terpakai_2a' : 'kuota_terpakai_2b'
+
   await supabaseAdmin
     .from('divisi')
     .update({ [kolomUpdate]: kuotaTerpakai + 1 })
@@ -84,3 +100,4 @@ export default async function handler(
 
   return res.status(200).json({ message: 'Pilihan berhasil disimpan' })
 }
+

@@ -1,10 +1,9 @@
-//import LoginPage from "./login";
-import MaintenancePage from "./maintanance";
+import LoginPage from "./login";
 
 export default function Home() {
   return (
     <div>
-      <MaintenancePage />
+      <LoginPage />
     </div>    
   );
 }
