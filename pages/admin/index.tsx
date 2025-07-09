@@ -154,13 +154,14 @@ export default function AdminPage() {
     if (!token) return
 
     fetch('/api/admin/delete-user', {
-      method: 'DELETE',
-      headers: {
-        'Content-Type': 'application/json',
-        Authorization: `Bearer ${token}`,
-      },
-      body: JSON.stringify({ userId }),
-    })
+  method: 'DELETE',
+  headers: {
+    'Content-Type': 'application/json',
+    Authorization: `Bearer ${token}`,
+  },
+  body: JSON.stringify({ user_id: userId }),
+  credentials: 'include', // wajib untuk auth session
+})
       .then((res) => res.json())
       .then((res) => {
         alert(res.message || 'User berhasil dihapus')

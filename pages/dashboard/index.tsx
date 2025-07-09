@@ -19,12 +19,12 @@ type Divisi = {
   kuota_total: number
   kuota_terpakai_2a: number
   kuota_terpakai_2b: number
+  kuota_terpakai: number
 }
 
 export default function Dashboard() {
   const router = useRouter()
   const [user, setUser] = useState<SupabaseUser | null>(null)
-  const [kelas, setKelas] = useState<string | null>(null)
   const [divisi, setDivisi] = useState<Divisi[]>([])
   const [pilihan, setPilihan] = useState<string | null>(null)
   const [loading, setLoading] = useState(true)
@@ -59,7 +59,7 @@ export default function Dashboard() {
         return
       }
 
-      setKelas(profile.kelas)
+      //setKelas(profile.kelas)
 
       // Ambil semua divisi
       const { data: divisiList, error: divisiError } = await supabase
@@ -137,9 +137,10 @@ try {
         d.id === divisi_id
           ? {
               ...d,
-              kuota_terpakai_2a: kelas === '2A' ? d.kuota_terpakai_2a + 1 : d.kuota_terpakai_2a,
-              kuota_terpakai_2b: kelas === '2B' ? d.kuota_terpakai_2b + 1 : d.kuota_terpakai_2b
-            }
+            //   kuota_terpakai_2a: kelas === '2A' ? d.kuota_terpakai_2a + 1 : d.kuota_terpakai_2a,
+            //   kuota_terpakai_2b: kelas === '2B' ? d.kuota_terpakai_2b + 1 : d.kuota_terpakai_2b
+              kuota_terpakai: d.kuota_terpakai + 1
+             }
           : d
       )
     )
@@ -212,8 +213,9 @@ const handleBatal = async (divisi_id: string) => {
           d.id === divisi_id
             ? {
                 ...d,
-                kuota_terpakai_2a: kelas === '2A' ? d.kuota_terpakai_2a - 1 : d.kuota_terpakai_2a,
-                kuota_terpakai_2b: kelas === '2B' ? d.kuota_terpakai_2b - 1 : d.kuota_terpakai_2b,
+                // kuota_terpakai_2a: kelas === '2A' ? d.kuota_terpakai_2a - 1 : d.kuota_terpakai_2a,
+                // kuota_terpakai_2b: kelas === '2B' ? d.kuota_terpakai_2b - 1 : d.kuota_terpakai_2b,
+                kuota_terpakai: d.kuota_terpakai - 1
               }
             : d
         )
@@ -239,22 +241,16 @@ const handleBatal = async (divisi_id: string) => {
       {success && <p className={styles.success}>{success}</p>}
       <ul className={styles.list}>
         {divisi.map(d => {
-  const totalKelas = kelas === '2A'
-    ? Math.ceil(d.kuota_total / 2)
-    : Math.floor(d.kuota_total / 2)
-
-  const terpakaiKelas = kelas === '2A'
-    ? d.kuota_terpakai_2a
-    : d.kuota_terpakai_2b
-
-  const full = terpakaiKelas >= totalKelas
+  const totalKuota = d.kuota_total
+  const terpakai = d.kuota_terpakai
+  const full = terpakai >= totalKuota
   const sudahPilih = pilihan === d.id
 
   return (
     <li key={d.id} className={styles.card}>
       <div>
         <strong>{d.nama}</strong>
-        <p>Kuota ({kelas}): {terpakaiKelas}/{totalKelas}</p>
+        <p>Kuota: {terpakai}/{totalKuota}</p>
       </div>
       {isSubmitting && <p className={styles.loading}>Menyimpan...</p>}
       {sudahPilih ? (
@@ -270,16 +266,17 @@ const handleBatal = async (divisi_id: string) => {
         )
       ) : (
         <button
-        className={styles.button}
-        disabled={!!pilihan || full || isLocked || isSubmitting}
-        onClick={() => handlePilih(d.id)}
-      >
-        {full ? 'Penuh' : 'Pilih'}
-      </button>
+          className={styles.button}
+          disabled={!!pilihan || full || isLocked || isSubmitting}
+          onClick={() => handlePilih(d.id)}
+        >
+          {full ? 'Penuh' : 'Pilih'}
+        </button>
       )}
     </li>
   )
-        })}
+})}
+
       </ul>
       {pilihan && !isLocked && (
         <div className={styles.lockContainer}>

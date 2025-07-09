@@ -1,85 +1,59 @@
+// File: /api/divition/cancel.ts
 import type { NextApiRequest, NextApiResponse } from 'next'
 import supabaseAdmin from '@/lib/supabaseAdmin'
 
 type CancelBody = {
   user_id: string
-  divisi_id: string
-}
-
-type Profile = {
-  kelas: '2A' | '2B'
-}
-
-type Divisi = {
-  kuota_terpakai_2a: number
-  kuota_terpakai_2b: number
-}
-
-type Pilihan = {
-  is_locked: boolean
 }
 
 export default async function handler(
   req: NextApiRequest,
   res: NextApiResponse<{ message: string }>
 ) {
-  if (req.method !== 'POST') {
-  return res.status(405).json({ message: 'Method not allowed' }) // ✅ fix!
-}
+  if (req.method !== 'POST') return res.status(405).end()
 
-  const { user_id, divisi_id } = req.body as CancelBody
-  if (!user_id || !divisi_id) {
-    return res.status(400).json({ message: 'user_id dan divisi_id wajib diisi' })
+  const { user_id } = req.body as CancelBody
+  if (!user_id) {
+    return res.status(400).json({ message: 'user_id wajib diisi' })
   }
 
-  const { data: profile } = await supabaseAdmin
-    .from('profiles')
-    .select('kelas')
-    .eq('id', user_id)
-    .single<Profile>()
-
-  const kelas = profile?.kelas ?? null
-  if (!kelas) {
-    return res.status(400).json({ message: 'Gagal ambil data kelas user' })
-  }
-
-  const { data: pilihan } = await supabaseAdmin
+  // 1. Ambil pilihan divisi yang sudah dibuat user
+  const { data: pilihan, error: pilihanError } = await supabaseAdmin
     .from('divisi_pilihan')
-    .select('is_locked')
+    .select('divisi_id')
     .eq('user_id', user_id)
-    .eq('divisi_id', divisi_id)
-    .single<Pilihan>()
+    .maybeSingle()
 
-  if (!pilihan) {
-    return res.status(404).json({ message: 'Pilihan tidak ditemukan' })
+  if (pilihanError || !pilihan) {
+    return res.status(400).json({ message: 'Kamu belum memilih divisi.' })
   }
 
-  if (pilihan.is_locked) {
-    return res.status(403).json({ message: 'Pilihan sudah terkunci, tidak bisa dibatalkan' })
-  }
-
-  const kolomKuota = kelas === '2A' ? 'kuota_terpakai_2a' : 'kuota_terpakai_2b'
-
+  // 2. Ambil divisi terkait
   const { data: divisi } = await supabaseAdmin
     .from('divisi')
-    .select(kolomKuota)
-    .eq('id', divisi_id)
-    .single<Divisi>()
+    .select('kuota_terpakai')
+    .eq('id', pilihan.divisi_id)
+    .maybeSingle()
 
-  const kuotaLama = kelas === '2A' ? divisi?.kuota_terpakai_2a : divisi?.kuota_terpakai_2b
-  const kuotaBaru = Math.max((kuotaLama ?? 1) - 1, 0)
+  if (!divisi) {
+    return res.status(404).json({ message: 'Divisi tidak ditemukan' })
+  }
 
-  await supabaseAdmin
-    .from('divisi')
-    .update({ [kolomKuota]: kuotaBaru })
-    .eq('id', divisi_id)
-
-  await supabaseAdmin
+  // 3. Hapus data pilihan
+  const deleteRes = await supabaseAdmin
     .from('divisi_pilihan')
     .delete()
     .eq('user_id', user_id)
-    .eq('divisi_id', divisi_id)
+
+  if (deleteRes.error) {
+    return res.status(500).json({ message: 'Gagal membatalkan pilihan' })
+  }
+
+  // 4. Kurangi kuota_terpakai
+  await supabaseAdmin
+    .from('divisi')
+    .update({ kuota_terpakai: Math.max(divisi.kuota_terpakai - 1, 0) }) // jaga-jaga biar tidak minus
+    .eq('id', pilihan.divisi_id)
 
   return res.status(200).json({ message: 'Pilihan berhasil dibatalkan' })
 }
-
